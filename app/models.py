@@ -1,6 +1,6 @@
 
 from pydantic import BaseModel
-from typing import Callable, NamedTuple
+from typing import Any, Callable, NamedTuple
 
 
 ############################## Models ##############################
@@ -13,15 +13,15 @@ class Vector3(NamedTuple):
 
 
 class StateManagerModel(BaseModel):
-    consumed: str
-    produced: str
+    consumed: Any
+    produced: Any
     function: Callable
 
 
 ############################## DTOs ##############################
 
 
-class ActorStateDTO(BaseModel):
+class AgentStateDTO(BaseModel):
     position: Vector3
     velocity: Vector3
     mass: float
@@ -33,14 +33,14 @@ class StateManagerDTO(BaseModel):
     function: str
 
 
-class ActorDTO(BaseModel):
+class AgentDTO(BaseModel):
     id: str
     state_managers: list[StateManagerDTO]
 
 
 class ActorProfileDTO(BaseModel):
-    actors: list[ActorDTO]
+    agents: list[AgentDTO]
 
 
 class SimulationDTO(BaseModel):
-    initial_states: dict[str, ActorStateDTO]
+    initial_states: dict[str, AgentStateDTO]

@@ -51,16 +51,13 @@ def get_agent_schema():
 
 @app.get("/schema/statemanagers")
 def get_state_managers_schema():
-    return {"stateManagers": modsim.schema}
+    return {"state_managers": modsim.schema}
 
 
 @app.get("/profiles")
 def get_profiles():
     profiles = Profile.query.order_by(Profile.id).all()
-    if profiles:
-        return {"profiles": [{"id": profile.id, "profile": profile.data} for profile in profiles]}
-    else:
-        return {"error": "Profile not found"}, 404
+    return {profile.id: json.loads(profile.data) for profile in profiles}
 
 
 @app.post("/profile/<profile_id>/load")
@@ -74,7 +71,7 @@ def load_profile(profile_id: str):
     profile_dto = ActorProfileDTO.model_validate(profile_data)
 
     t = datetime.now()
-    loaded_sim_graph = SimulationGraph(profile_dto.actors)
+    loaded_sim_graph = SimulationGraph(profile_dto.agents)
     logging.info(f"Time to Load: {datetime.now() - t}")
 
     _sim_graph_cache[profile_id] = loaded_sim_graph
@@ -84,9 +81,13 @@ def load_profile(profile_id: str):
 
 @app.put("/profile/<profile_id>")
 @validate()
-def set_profile(profile_id: str, profile: ActorProfileDTO):
+def set_profile(profile_id: str):
+    profile = ActorProfileDTO.model_validate(request.json)
+
+    logging.info(f"Received profile: {profile}")
+
     t = datetime.now()
-    loaded_sim_graph = SimulationGraph(profile.actors)
+    loaded_sim_graph = SimulationGraph(profile.agents)
     logging.info(f"Time to Build: {datetime.now() - t}")
 
     _sim_graph_cache[profile_id] = loaded_sim_graph
@@ -105,23 +106,22 @@ def set_profile(profile_id: str, profile: ActorProfileDTO):
 @app.get("/profile/<profile_id>/simulations")
 def get_data(profile_id: str):
     simulations = Simulation.query.filter_by(profile_id=profile_id).order_by(Simulation.id).all()
-    if simulations:
-        return {"simulations": [{"id": sim.id, "data": sim.data} for sim in simulations]}
-    else:
-        return {"error": "No simulations found for this profile"}, 404
+    return {"simulations": [{"id": sim.id, "data": sim.data} for sim in simulations]}
 
 
-@app.post("/profile/<profile_id>/simulation")
+@app.put("/profile/<profile_id>/simulation/<simulation_id>")
 @validate()
-def simulate(profile_id: str, profile: SimulationDTO):
+def simulate(profile_id: str, simulation_id: str):
     loaded_sim_graph = _sim_graph_cache.get(profile_id)
     if loaded_sim_graph is None:
         logging.error("Attempted to run simulation with no loaded actors")
         return {"error": "No actors loaded"}, 400
+    
+    simulation = SimulationDTO.model_validate(request.json)
 
     # Create store and simulator
     store = QRangeStore()
-    simulator = Simulator(store=store, sim_graph=loaded_sim_graph, initial_states=profile.initial_states)
+    simulator = Simulator(store=store, sim_graph=loaded_sim_graph, simulation=simulation)
 
     # Run simulation
     t = datetime.now()
@@ -129,8 +129,12 @@ def simulate(profile_id: str, profile: SimulationDTO):
     logging.info(f"Time to Simulate: {datetime.now() - t}")
 
     # Save data to database
-    simulation = Simulation(data=json.dumps(store.store))
-    db.session.add(simulation)
+    simulation = Simulation.query.filter_by(id=simulation_id, profile_id=profile_id).first()
+    if simulation:
+        simulation.data = json.dumps(store.store)
+    else:
+        simulation = Simulation(id=simulation_id, profile_id=profile_id, data=json.dumps(store.store))
+        db.session.add(simulation)
     db.session.commit()
 
     return store.store

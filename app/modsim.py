@@ -62,15 +62,14 @@ _state_managers = [
 schema = []
 for func in _state_managers:
     sig = inspect.signature(func)
-    # Extract input types from annotations
-    input_types = tuple(param.annotation for param in sig.parameters.values())
-    # Extract output type from return annotation
-    output_type = sig.return_annotation
+    
+    inputs = tuple({key : sig.parameters[key].annotation.__name__} for key in sig.parameters.keys())
+    output_type = sig.return_annotation.__name__
     
     schema.append({
         'function_name': func.__name__,
-        'inputs': input_types,
-        'output': output_type
+        'inputs': inputs,
+        'output_type': output_type
     })
 
 

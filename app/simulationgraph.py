@@ -3,7 +3,7 @@ import subprocess
 import json
 
 import modsim
-from models import ActorDTO, StateManagerModel, Vector3
+from models import AgentDTO, StateManagerModel, Vector3
 
 
 def parse_query(query):
@@ -20,7 +20,7 @@ class SimulationGraph:
     Build a simulation graph from a list of actors.
     """
 
-    def __init__(self, actors: list[ActorDTO]):
+    def __init__(self, actors: list[AgentDTO]):
         self._sim_graph: dict[str, list[StateManagerModel]] = {}
         for actor in actors:
             agent: list[StateManagerModel] = []

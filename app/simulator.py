@@ -3,7 +3,7 @@
 from functools import reduce
 from operator import __or__
 
-from models import ActorStateDTO
+from models import AgentStateDTO, SimulationDTO
 from simulationgraph import SimulationGraph
 from store import QRangeStore
 
@@ -30,10 +30,10 @@ class Simulator:
         init (dict): The initial state of the universe.
     """
 
-    def __init__(self, store: QRangeStore, sim_graph: SimulationGraph, initial_states: dict[str, ActorStateDTO]):
+    def __init__(self, store: QRangeStore, sim_graph: SimulationGraph, simulation: SimulationDTO):
         self.sim_graph = sim_graph
         self.store = store
-        store[-999999999, 0] = initial_states
+        store[-999999999, 0] = simulation.initial_states
         self.states = { 
             actorId: {
                 "position": actorState.position,
@@ -43,7 +43,7 @@ class Simulator:
                 "timeStep": 0.01,
             }
                 
-            for actorId, actorState in initial_states.items() 
+            for actorId, actorState in simulation.initial_states.items() 
         }
 
     def read(self, t):
