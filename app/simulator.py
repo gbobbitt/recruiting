@@ -33,7 +33,6 @@ class Simulator:
     def __init__(self, store: QRangeStore, sim_graph: SimulationGraph, simulation: SimulationDTO):
         self.sim_graph = sim_graph
         self.store = store
-        store[-999999999, 0] = simulation.initial_states
         self.states = { 
             actorId: {
                 "position": actorState.position,
@@ -45,6 +44,7 @@ class Simulator:
                 
             for actorId, actorState in simulation.initial_states.items() 
         }
+        store[-999999999, 0] = self.states
 
     def read(self, t):
         try:
@@ -62,4 +62,3 @@ class Simulator:
                 if set(universe) == set(self.states):
                     newState = self.sim_graph.step(agentId, universe)
                     self.store[t, newState[agentId]["time"]] = newState
-                    # self.times[agentId] = newState[agentId]["time"]

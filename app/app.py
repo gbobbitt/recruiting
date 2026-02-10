@@ -56,7 +56,7 @@ def get_state_managers_schema():
 
 @app.get("/profiles")
 def get_profiles():
-    profiles = Profile.query.order_by(Profile.id).all()
+    profiles = Profile.query.all()
     return {profile.id: json.loads(profile.data) for profile in profiles}
 
 
@@ -66,9 +66,10 @@ def load_profile(profile_id: str):
     actor_profile = Profile.query.filter_by(id=profile_id).first()
     if not actor_profile:
         return {"error": "Profile not found"}, 404
+    
+    logging.info(f"Loading profile {profile_id} from database: {actor_profile.data}")
 
-    profile_data = json.loads(actor_profile.data)
-    profile_dto = ActorProfileDTO.model_validate(profile_data)
+    profile_dto = ActorProfileDTO.model_validate_json(actor_profile.data)
 
     t = datetime.now()
     loaded_sim_graph = SimulationGraph(profile_dto.agents)
@@ -76,7 +77,7 @@ def load_profile(profile_id: str):
 
     _sim_graph_cache[profile_id] = loaded_sim_graph
 
-    return {"id": profile_id, "profile": profile_dto, "status": "loaded"}
+    return {"id": profile_id, "profile": profile_dto.model_dump(), "status": "loaded"}
 
 
 @app.put("/profile/<profile_id>")
@@ -105,8 +106,8 @@ def set_profile(profile_id: str):
 
 @app.get("/profile/<profile_id>/simulations")
 def get_data(profile_id: str):
-    simulations = Simulation.query.filter_by(profile_id=profile_id).order_by(Simulation.id).all()
-    return {"simulations": [{"id": sim.id, "data": sim.data} for sim in simulations]}
+    simulations = Simulation.query.filter_by(profile_id=profile_id).all()
+    return {sim.id: json.loads(sim.data) for sim in simulations}
 
 
 @app.put("/profile/<profile_id>/simulation/<simulation_id>")
@@ -117,11 +118,13 @@ def simulate(profile_id: str, simulation_id: str):
         logging.error("Attempted to run simulation with no loaded actors")
         return {"error": "No actors loaded"}, 400
     
-    simulation = SimulationDTO.model_validate(request.json)
+    initial_simulation = SimulationDTO.model_validate(request.json)
+
+    logging.info(f"Received simulation: {initial_simulation}")
 
     # Create store and simulator
     store = QRangeStore()
-    simulator = Simulator(store=store, sim_graph=loaded_sim_graph, simulation=simulation)
+    simulator = Simulator(store=store, sim_graph=loaded_sim_graph, simulation=initial_simulation)
 
     # Run simulation
     t = datetime.now()
@@ -131,9 +134,9 @@ def simulate(profile_id: str, simulation_id: str):
     # Save data to database
     simulation = Simulation.query.filter_by(id=simulation_id, profile_id=profile_id).first()
     if simulation:
-        simulation.data = json.dumps(store.store)
+        simulation.data = json.dumps({'initial_states': request.json, 'data': store.store})
     else:
-        simulation = Simulation(id=simulation_id, profile_id=profile_id, data=json.dumps(store.store))
+        simulation = Simulation(id=simulation_id, profile_id=profile_id, data=json.dumps({'initial_states': request.json, 'data': store.store}))
         db.session.add(simulation)
     db.session.commit()
 
