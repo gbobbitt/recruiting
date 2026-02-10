@@ -275,14 +275,20 @@ const App = () => {
         </Heading>
         <Flex direction="row" width="100%" justify="center" mb="4" align="start">
 
-          <Flex direction="column" mr="4" align="start" gap="2" style={{width: "1000px"}}>
+          <Flex direction="column" mr="4" align="start" gap="2" style={{width: "500px"}}>
             <Select.Root onValueChange={onProfileChange}>
               <Select.Trigger>
                 <Select.Value placeholder="Select a profile" />
                 <Select.Icon />
               </Select.Trigger>
               <Select.Portal>
-                <Select.Content position='popper' className="SelectContent">
+                <Select.Content position='popper' style={{
+                  backgroundColor: '#000000',
+                  zIndex: 999999,
+                  borderRadius: 6,
+                  boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
+                  padding: 6,
+                }}>
                   <Select.Viewport>
                     <Select.Item value="new">
                       <Select.ItemText>
@@ -340,7 +346,7 @@ const App = () => {
           
           {/* List all simulations for the selected profile */}
           {selectedProfile && profiles[selectedProfile] && (
-            <ScrollArea.Root style={{height: '100%', width: '100%'}}>
+            <ScrollArea.Root style={{height: '100%', width: '500px'}}>
               <ScrollArea.Viewport>
                 <Form.Root onSubmit={handleProfileFormSubmit}>
                   <SimulationsForm profileId={selectedProfile} profile={profiles[selectedProfile]} simulations={simulations} 
@@ -358,9 +364,9 @@ const App = () => {
             </ScrollArea.Root>
           )}
 
-          <Flex direction="column" width="100%" justify="end" align="stretch">
+          <Flex direction="column" style={{ flex: 1, minWidth: 0 }} align="stretch">
             <Plot
-              style={{ width: '45%', height: '100%', margin: '5px' }}
+              style={{ width: '100%', height: '100%', margin: '5px' }}
               data={positionData}
               layout={{
                 title: 'Position',
@@ -378,7 +384,7 @@ const App = () => {
               }}
             />
             <Plot
-              style={{ width: '45%', height: '100%', margin: '5px' }}
+              style={{ width: '100%', height: '100%', margin: '5px' }}
               data={velocityData}
               layout={{
                 title: 'Velocity',
@@ -526,7 +532,13 @@ const StateManagerForm = forwardRef(
               <Select.Icon />
             </Select.Trigger>
             <Select.Portal>
-              <Select.Content position='popper' className="SelectContent">
+              <Select.Content position='popper' style={{
+                backgroundColor: '#000000',
+                zIndex: 999999,
+                borderRadius: 6,
+                boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
+                padding: 6,
+              }}>
                 <Select.Viewport>
                   {stateManagerSchema.map((schema) => (
                     <Select.Item key={`${schema.function_name}-${index}`} value={schema.function_name}>
@@ -638,7 +650,7 @@ const SimulationsForm = forwardRef(
       {Object.entries(simulations).map(([simulationId, simulation]) => (
         <Card>
           <Heading as="h2" size="5" weight="bold" mb="2">
-            Simulation {simulationId}
+            {simulationId}
           </Heading>
           <Button type="button" onClick={() => runSimulation(simulationId, simulation) }>
             Run Simulation
@@ -775,6 +787,7 @@ const SimulationsForm = forwardRef(
             };
             return acc;
           }, {} as Record<string, AgentInitialStateFormData>),
+          data: [],
         };
         updatedSimulations({...simulations, [newSimId]: newSim});
       }}>

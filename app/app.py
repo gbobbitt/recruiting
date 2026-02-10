@@ -131,12 +131,14 @@ def simulate(profile_id: str, simulation_id: str):
     simulator.simulate()
     logging.info(f"Time to Simulate: {datetime.now() - t}")
 
+    initial_state_dict = { agentId: agentState.model_dump() for agentId, agentState in initial_simulation.initial_states.items() }
+
     # Save data to database
     simulation = Simulation.query.filter_by(id=simulation_id, profile_id=profile_id).first()
     if simulation:
-        simulation.data = json.dumps({'initial_states': request.json, 'data': store.store})
+        simulation.data = json.dumps({'initial_states': initial_state_dict, 'data': store.store})
     else:
-        simulation = Simulation(id=simulation_id, profile_id=profile_id, data=json.dumps({'initial_states': request.json, 'data': store.store}))
+        simulation = Simulation(id=simulation_id, profile_id=profile_id, data=json.dumps({'initial_states': initial_state_dict, 'data': store.store}))
         db.session.add(simulation)
     db.session.commit()
 
